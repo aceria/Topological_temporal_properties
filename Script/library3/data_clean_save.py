@@ -121,7 +121,6 @@ def get_df_from_raw(title1):
 
 
 
-Copy code
 def get_df_connected_from_raw(title1, active_thresh=0, remove_outlier=True):
     """
     Process and filter data from the specified dataset, creating a time-aggregated topology.
