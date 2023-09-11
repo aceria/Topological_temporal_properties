@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
 import pandas as pd
 import joblib
 import glob
@@ -11,58 +10,41 @@ import numpy as np
 import random
 import itertools
 import networkx as nx
-# In[5]:
 
-
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
-import pandas as pd
-import joblib
-import glob
-from collections import Counter
-from matplotlib import pyplot as plt
-import numpy as np
-import random
-import itertools
-import networkx as nx
-from statsmodels.stats.weightstats import DescrStatsW
-# In[5]:
-
-
+# Define the path to the data directory
 path = '../'
 
-human_contact_list  = ['sg_infectious_contact', 'primaryschool', 'highschool_2011', 'highschool_2012','highschool_2013', 'ht09_contact', 'SFHH', 'tij_lnVS', 'tij_lnVS2', 'haggle', 'Hospital']
+# Define lists of datasets for human contact and email communication
+human_contact_list = ['sg_infectious_contact', 'primaryschool', 'highschool_2011', 'highschool_2012',
+                      'highschool_2013', 'ht09_contact', 'SFHH', 'tij_lnVS', 'tij_lnVS2', 'haggle', 'Hospital']
 
-mail_list = ['DNC_Mail_part2','ME', 'CollegeMsg', 'EU']
+mail_list = ['DNC_Mail_part2', 'ME', 'CollegeMsg', 'EU']
 
+# Combine both lists for plotting purposes
 title_list_plot = mail_list + human_contact_list
-name_paper = ['DNC_2','ME','CM','EEU','PS','HS2013','HT2009','WP','Infectious','WP2','SFHH','Hospital','HS2012']
-title_to_paper_name = {k:v for k,v in zip(title_list_plot,name_paper)}
-    
 
-path_dict = {}
-path_dict['DNC_Mail'] = path+'Data/raw_data/dnc-temporalGraph/out.dnc-temporalGraph'
-path_dict['ht09_contact'] = path+'Data/raw_data/ht09_contact_list.dat.gz'
-path_dict['highschool_2013'] = path+'Data/raw_data/High-School_data_2013.csv.gz'
-path_dict['primaryschool'] = path+'Data/raw_data/primaryschool.csv.gz'
-path_dict['ME'] = path+'Data/raw_data/ME/out.radoslaw_email_email'
-path_dict['sg_infectious_contact'] = path+'Data/raw_data/sg_infectious_contact_list/'
-path_dict['EU'] = path+'Data/raw_data/email-Eu-core-temporal.txt'
-path_dict['CollegeMsg'] = path+'Data/raw_data/CollegeMsg.txt.gz'
-path_dict['tij_lnVS'] = path+'Data/raw_data/tij_InVS.dat'
-path_dict['tij_lnVS2'] = path+'Data/raw_data/tij_InVS15.dat_.gz'
-path_dict['SFHH'] = path+'Data/raw_data/tij_SFHH.dat_.gz'
-path_dict['Hospital'] = path+'Data/raw_data/detailed_list_of_contacts_Hospital.dat_.gz'
-path_dict['highschool_2012'] = path+'Data/raw_data/highschool_2012.csv.gz'
+# Define paper names associated with the datasets
+name_paper = ['DNC_2', 'ME', 'CM', 'EEU', 'PS', 'HS2013', 'HT2009', 'WP', 'Infectious', 'WP2', 'SFHH', 'Hospital', 'HS2012']
 
+# Create a mapping of dataset titles to paper names
+title_to_paper_name = {k: v for k, v in zip(title_list_plot, name_paper)}
 
-
-
-
+# Define a dictionary mapping dataset titles to their respective file paths
+path_dict = {
+    'DNC_Mail': path + 'Data/raw_data/dnc-temporalGraph/out.dnc-temporalGraph',
+    'ht09_contact': path + 'Data/raw_data/ht09_contact_list.dat.gz',
+    'highschool_2013': path + 'Data/raw_data/High-School_data_2013.csv.gz',
+    'primaryschool': path + 'Data/raw_data/primaryschool.csv.gz',
+    'ME': path + 'Data/raw_data/ME/out.radoslaw_email_email',
+    'sg_infectious_contact': path + 'Data/raw_data/sg_infectious_contact_list/',
+    'EU': path + 'Data/raw_data/email-Eu-core-temporal.txt',
+    'CollegeMsg': path + 'Data/raw_data/CollegeMsg.txt.gz',
+    'tij_lnVS': path + 'Data/raw_data/tij_InVS.dat',
+    'tij_lnVS2': path + 'Data/raw_data/tij_InVS15.dat_.gz',
+    'SFHH': path + 'Data/raw_data/tij_SFHH.dat_.gz',
+    'Hospital': path + 'Data/raw_data/detailed_list_of_contacts_Hospital.dat_.gz',
+    'highschool_2012': path + 'Data/raw_data/highschool_2012.csv.gz'
+}
 
 
 
