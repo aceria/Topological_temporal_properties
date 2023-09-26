@@ -113,7 +113,7 @@ def get_df_from_raw(title1):
     df.start = df.nodes.apply(lambda x: x[0])
     df.stop = df.nodes.apply(lambda x: x[1])
     min1 = min(df.timestamp)
-    df.timestamp = df.timestamp - min(df.timestamp)
+    if 'DNC_Mail' not in title1:df.timestamp = df.timestamp - min(df.timestamp)
     df = df.sort_values('timestamp', ascending=True).reset_index().drop('index', axis=1)
     df = df[df.start != df.stop]
 
@@ -121,106 +121,111 @@ def get_df_from_raw(title1):
 
 
 
-def get_df_connected_from_raw(title1, active_thresh=0, remove_outlier=True):
+def get_df_connected_from_raw(title1, active_thresh=0, remove_outlier=True,large_part = False,t_0 = None):
     """
-    Process and filter data from the specified dataset, creating a time-aggregated topology.
+    Process and filter data from the specified dataset, creating a temporal network dataframe.
 
     Args:
         title1 (str): The title of the dataset to process.
         active_thresh (int, optional): The threshold for filtering low-activity links. Defaults to 0.
         remove_outlier (bool, optional): Whether to remove outliers in inter-event times by shifting data. Defaults to True.
-
+        large_part (bool,optional): Wheather to remove the part of DNC dataset with smallest number of nodes
+        t_0 (int, opt): reference time to divide the DNC dataset (it is considered only for DNC dataset)
     Returns:
-        pd.DataFrame: Processed dataframe containing the filtered and aggregated dataset.
+        pd.DataFrame: Processed dataframe containing the filtered temporal network.
     """
-
-    # Define a dictionary of top inter-event time outlier to be removed for different datasets
-    stop_dict = {
-        "tij_lnVS": 9,
-        "tij_lnVS2": 9,
-        "Hospital": 1,
-        "SFHH": 1,
-        "ht09_contact": 3,
-        "primaryschool": 1,
-        "highschool_2013": 4,
-        "highschool_2012": 6,
-        "CollegeMsg": 1,
-        "EU": 3
-    }
-
-    # Obtain the dataframe from raw data
-    df = get_df_from_raw(title1)
-
-    # Create the time-aggregated topology
-    edge_weights = df.groupby(df.nodes).size()
-
-    # Optional filter of low-activity links based on the specified threshold
-    edge_weights = edge_weights[edge_weights >= active_thresh]
-    act_nodes = edge_weights.index
-    df = df[df.nodes.isin(act_nodes)]
-
-    # If the dataset is 'DNC_Mail', skip the first row (commented line)
-    if title1 == 'DNC_Mail':
-        df = df.iloc[1:]
-
-    # Resetting index and formatting data
-    edge_weights = pd.DataFrame(edge_weights).reset_index()
-    edge_weights.columns = ['nodes', 'weights']
-    edge_weights = edge_weights.apply(lambda x: (x.nodes[0], x.nodes[1], x.weights), axis=1).values
-
-    # Create a graph and its line graph
-    g1 = nx.Graph()
-    g1.add_weighted_edges_from(edge_weights)
-    L = nx.line_graph(g1)
-
-    # Finding the largest connected component
-    giant = max(nx.connected_component_subgraphs(g1), key=len)
-    connected_nodes = set(giant.nodes())
-
-    # Filter data to include only nodes within the largest connected component
-    df = df[(df.start.isin(connected_nodes)) | (df.stop.isin(connected_nodes))]
-    df = df[df.start != df.stop]
-
-    # Create a new index for nodes and update node pairs
-    new_index = pd.Series(index=sorted(list(set(df.start) | set(df.stop))), data=range(1, len(set(df.start) | set(df.stop)) + 1)).to_dict()
-    df.start = df.start.apply(lambda x: new_index[x])
-    df.stop = df.stop.apply(lambda x: new_index[x])
-    df['nodes'] = df.apply(lambda x: tuple(sorted([int(x.start), int(x.stop)])), axis=1)
-    df.timestamp = df.timestamp.astype('int')
-    df.timestamp = df.timestamp - min(df.timestamp)
-    df.reset_index(inplace=True)
-    df.drop('index', axis=1, inplace=True)
-
-    # Drop duplicate entries based on timestamp and node pairs
-    df.drop_duplicates(['timestamp', 'nodes'], inplace=True)
-    df.reset_index(inplace=True)
-    df.drop('index', axis=1, inplace=True)
     
-    # Calculate the time shifts and remove inter-event times outliers based on stop values
-    shift = df.timestamp.shift(-1) - df.timestamp
+    if title1 == 'DNC_Mail':
+        return get_df_connected_from_raw_DNC(True,t_0,active_thresh)
+    
+    else:
+        # Define a dictionary of top inter-event time outlier to be removed for different datasets
+        stop_dict = {
+            "tij_lnVS": 9,
+            "tij_lnVS2": 9,
+            "Hospital": 1,
+            "SFHH": 1,
+            "ht09_contact": 3,
+            "primaryschool": 1,
+            "highschool_2013": 4,
+            "highschool_2012": 6,
+            "CollegeMsg": 1,
+            "EU": 3
+        }
 
-    if title1 in stop_dict.keys():
-        stops = shift.sort_values(ascending=False)[:stop_dict[title1]]
+        # Obtain the dataframe from raw data
+        df = get_df_from_raw(title1)
 
-        if title1 in ['EU']:
-            df = df[df.index <= stops.index[0]]
-            stops = shift.sort_values(ascending=False)[1:stop_dict[title1]]
+        # Create the time-aggregated topology
+        edge_weights = df.groupby(df.nodes).size()
 
-        if title1 in ['CollegeMsg']:
-            df = df[df.index > stops.index[0]]
-            stops = shift.sort_values(ascending=False)[1:stop_dict[title1]]
-            if title1 == 'DNC_Mail':
-                df.timestamp = df.timestamp - min(df.timestamp)
+        # Optional filter of low-activity links based on the specified threshold
+        edge_weights = edge_weights[edge_weights >= active_thresh]
+        act_nodes = edge_weights.index
+        df = df[df.nodes.isin(act_nodes)]
 
-        if remove_outlier:
-            for index in stops.index:
-                df.loc[index + 1:, 'timestamp'] = df.loc[index + 1:, 'timestamp'].apply(lambda x: x - stops[index])
+        # If the dataset is 'DNC_Mail', skip the first row (commented line)
+        if title1 == 'DNC_Mail':
+            df = df.iloc[1:]
 
-    # Return the processed dataframe
-    df = df[['start', 'stop', 'timestamp', 'nodes']]
-    df.drop_duplicates(['timestamp', 'nodes'], inplace=True)
-    df = df[df.start != df.stop]
-    df.timestamp = df.timestamp - min(df.timestamp)
+        # Resetting index and formatting data
+        edge_weights = pd.DataFrame(edge_weights).reset_index()
+        edge_weights.columns = ['nodes', 'weights']
+        edge_weights = edge_weights.apply(lambda x: (x.nodes[0], x.nodes[1], x.weights), axis=1).values
+
+        # Create a graph and its line graph
+        g1 = nx.Graph()
+        g1.add_weighted_edges_from(edge_weights)
+        L = nx.line_graph(g1)
+
+        # Finding the largest connected component
+        giant = max(nx.connected_component_subgraphs(g1), key=len)
+        connected_nodes = set(giant.nodes())
+
+        # Filter data to include only nodes within the largest connected component
+        df = df[(df.start.isin(connected_nodes)) | (df.stop.isin(connected_nodes))]
+        df = df[df.start != df.stop]
+
+        # Create a new index for nodes and update node pairs
+        new_index = pd.Series(index=sorted(list(set(df.start) | set(df.stop))), data=range(1, len(set(df.start) | set(df.stop)) + 1)).to_dict()
+        df.start = df.start.apply(lambda x: new_index[x])
+        df.stop = df.stop.apply(lambda x: new_index[x])
+        df['nodes'] = df.apply(lambda x: tuple(sorted([int(x.start), int(x.stop)])), axis=1)
+        df.timestamp = df.timestamp.astype('int')
+        df.timestamp = df.timestamp - min(df.timestamp)
+        df.reset_index(inplace=True)
+        df.drop('index', axis=1, inplace=True)
+
+        # Drop duplicate entries based on timestamp and node pairs
+        df.drop_duplicates(['timestamp', 'nodes'], inplace=True)
+        df.reset_index(inplace=True)
+        df.drop('index', axis=1, inplace=True)
+        
+        # Calculate the time shifts and remove inter-event times outliers based on stop values
+        shift = df.timestamp.shift(-1) - df.timestamp
+
+        if title1 in stop_dict.keys():
+            stops = shift.sort_values(ascending=False)[:stop_dict[title1]]
+
+            if title1 in ['EU']:
+                df = df[df.index <= stops.index[0]]
+                stops = shift.sort_values(ascending=False)[1:stop_dict[title1]]
+
+            if title1 in ['CollegeMsg']:
+                df = df[df.index > stops.index[0]]
+                stops = shift.sort_values(ascending=False)[1:stop_dict[title1]]
+                if title1 == 'DNC_Mail':
+                    df.timestamp = df.timestamp - min(df.timestamp)
+
+            if remove_outlier:
+                for index in stops.index:
+                    df.loc[index + 1:, 'timestamp'] = df.loc[index + 1:, 'timestamp'].apply(lambda x: x - stops[index])
+
+        # Return the processed dataframe
+        df = df[['start', 'stop', 'timestamp', 'nodes']]
+        df.drop_duplicates(['timestamp', 'nodes'], inplace=True)
+        df = df[df.start != df.stop]
+        df.timestamp = df.timestamp - min(df.timestamp)
 
     return df
 
@@ -329,3 +334,59 @@ def from_line_graph_to_distance(g1, total_dic):
     return line_graph_distance_voc
 
 
+### method to focus only on the part of DNC dataset with largest number of contacts
+
+def get_df_connected_from_raw_DNC(large_part = True,t_0 = None,active_thresh = 0):
+
+    """
+    Process and filter data from the specified dataset, creating a temporal network
+
+    Args:
+        title1 (str): The title of the dataset to process.
+        active_thresh (int, optional): The threshold for filtering low-activity links. Defaults to 0.
+        remove_outlier (bool, optional): Whether to remove outliers in inter-event times by shifting data. Defaults to True.
+        large_part (bool,optional): Wheather to remove the part of DNC dataset with smallest number of nodes
+        t_0 (int, opt): reference time to divide the DNC dataset (it is considered only for DNC dataset)
+    Returns:
+        pd.DataFrame: Processed dataframe containing the filtered and aggregated dataset.
+    """
+    df = get_df_from_raw('DNC_Mail')
+    df['realtime'] = df.timestamp.apply(lambda x: pd.to_datetime(x,unit ='s'))
+    t0_int = (pd.to_datetime(t_0) - min(df.realtime)).total_seconds() + min(df.timestamp)
+    print t0_int
+    df = df.iloc[1:]
+    if large_part == True: df = df[df.realtime>=pd.to_datetime(t_0)]
+    else:
+        df = df[df.realtime<pd.to_datetime(t_0)]
+        
+    edge_weights = df.groupby(df.nodes).size()
+    edge_weights = edge_weights[edge_weights>= active_thresh]
+    act_nodes = edge_weights.index
+    df = df[df.nodes.isin(act_nodes)]
+    
+    edge_weights = pd.DataFrame(edge_weights).reset_index()
+    edge_weights.columns = ['nodes','weights']
+    edge_weights = edge_weights.apply(lambda x:(x.nodes[0],x.nodes[1],x.weights),axis=1).values
+
+    g1 = nx.Graph()
+    g1.add_weighted_edges_from(edge_weights)
+    L = nx.line_graph(g1)
+    giant = max(nx.connected_component_subgraphs(g1), key=len)
+    connected_nodes = set(giant.nodes())
+    print len(g1.nodes),len(connected_nodes)
+    df = df[(df.start.isin(connected_nodes))|(df.stop.isin(connected_nodes))]
+    df = df[df.start != df.stop]
+    new_index = pd.Series(index = sorted(list(set(df.start)|set(df.stop))),data = range(1,len(set(df.start)|set(df.stop))+1)).to_dict()
+    df.start = df.start.apply(lambda x:new_index[x])
+    df.stop = df.stop.apply(lambda x:new_index[x])
+    df['nodes'] = df[['start','stop']].apply(lambda x:tuple(sorted([int(x.start),int(x.stop)])),axis=1)
+    df.reset_index(inplace = True)
+    df.drop('index',axis = 1,inplace = True)
+    
+    df.drop_duplicates(['timestamp','nodes'],inplace=True)
+    
+    if large_part == True: assert min(df.timestamp)>= t0_int
+    else:
+        assert max(df.timestamp)< t0_int
+    df.timestamp = df.timestamp - min(df.timestamp)
+    return df

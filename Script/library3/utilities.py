@@ -19,7 +19,7 @@ from statsmodels.stats.weightstats import DescrStatsW
 
 path = '../'
 
-human_contact_list  = ['sg_infectious_contact', 'primaryschool', 'highschool_2011', 'highschool_2012','highschool_2013', 'ht09_contact', 'SFHH', 'tij_lnVS', 'tij_lnVS2', 'haggle', 'Hospital']
+human_contact_list  = ['sg_infectious_contact', 'primaryschool', 'highschool_2012','highschool_2013', 'ht09_contact', 'SFHH', 'tij_lnVS', 'tij_lnVS2', 'Hospital']
 
 mail_list = ['DNC_Mail_part2','ME', 'CollegeMsg', 'EU']
 
