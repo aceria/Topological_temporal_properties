@@ -37,7 +37,9 @@ Network data after the preprocessed steps.
 
 
 
-### Description of Code Folder
+### Description of Scipt Folder
+
+Contains the utilities (`library3`)  and the jupyter notebooks to run the experiments contained in the paper.
 
 
 
