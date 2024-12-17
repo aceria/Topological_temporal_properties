@@ -27,7 +27,7 @@ If you use our code in your research or projects, please consider citing us.
 ## Repository organization
 
 
-### Description of Code Folder
+### Description of Data Folder
 
 -`randomization.py`
 Utilities to randomize the labelled higher-order network.
@@ -44,6 +44,8 @@ Utilities to compute the order contribution and order relevance to the sum of th
 
 -`utils.py`
 Utilities for our experiments.
+
+### Description of Code Folder
 
 
 
