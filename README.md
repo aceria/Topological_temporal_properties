@@ -41,5 +41,7 @@ Network data after the preprocessed steps.
 
 Contains the utilities (`library3`)  and the jupyter notebooks to run the experiments contained in the paper.
 
+### Description of Results Folder
 
+Includes the pre-computed results obtained and described in the paper.
 
